@@ -6,7 +6,7 @@ cut = 10
 velocity = 1.0
 
 time_sta_exp = -4
-time_end_exp = 6
+time_end_exp = 7
 num_xaxis = 1000
 
 
@@ -107,27 +107,30 @@ def generate_lines(a, b): #Turns a float array into a string array
         L.append(str(a[i]) + ' ' + str(b[i]) + ' \n')
     return L
 
-def save(j, a, SSD):
+def save(num_traj, a, SSD):
     filename = 'LevyWalkNS_data/te'+str(time_end_exp)+'_a'+str(a)+'.txt'
     j_new = 0
     try:
-        SSD_old = np.loadtxt(filename, skiprows=2)
+        SSD_old = np.loadtxt(filename, skiprows=2)[:,1]
         lines = []
         with open(filename) as f:
             lines = f.readlines()
         j_old = float(lines[1][2:])
+        print(len(SSD_old), len(SSD), num_xaxis-1)
         SSD_new = SSD_old + SSD
-        j_new = j_old + j
-
-        file1 = open(filename, 'w')
+        print(lines[1], ' <> ', lines[1][2:])
+        j_new = j_old + num_traj
         L = generate_lines(log_time_scale, SSD_new)
+        print(j_old, num_traj, j_new)
+        
     except:
-        file1 = open(filename, 'w')
         L = generate_lines(log_time_scale, SSD)
-        j_new = j
+        j_new = num_traj
+        
     
-    file1.write('a='+str(a))
-    file1.write('j='+str(j_new))
+    file1 = open(filename, 'w')
+    file1.write('a='+str(a)+'\n')
+    file1.write('j='+str(j_new)+'\n')
     file1.writelines(L)
     file1.close()
     
@@ -136,7 +139,7 @@ def calc_ensemble(ss, a, time_end):
     min_dt = 10
     SSD = np.zeros(num_xaxis-1)
     for j in range(ss):
-        if(100*j/ss % 1 == 0):
+        if(10*j/ss % 1 == 0):
             print(j/ss)
         xs, deltat = generate_traj(time_end, a)
         #plt.plot(t, x, '.-', label='values')
@@ -147,9 +150,12 @@ def calc_ensemble(ss, a, time_end):
             min_dt = deltat
 
         SSD += xs**2
-        
-    save(ss, a, SSD)
-        
+        if(j % 100 == 0):
+            print('save')
+            save(100, a, SSD)
+            SSD = np.zeros(num_xaxis-1)
+    
+    save(100, a, SSD)
         
     MSD = SSD/ss
     plt.plot(log_time_scale, MSD, label='a='+str(a))
@@ -169,11 +175,11 @@ def calc_ensemble(ss, a, time_end):
 #calc_ensemble(100, 0.6, log_time_scale[-1]) #10**time_end_exp)
 #calc_ensemble(100, 0.9, log_time_scale[-1]) #10**time_end_exp)
 
-calc_ensemble(100, 1.9, log_time_scale[-1]) #10**time_end_exp)
+calc_ensemble(10000, 1.8, log_time_scale[-1]) #10**time_end_exp)
 
 
 plt.xscale('log')
 plt.yscale('log')
 
-plt.legend()
-plt.show()
+#plt.legend()
+#plt.show()
