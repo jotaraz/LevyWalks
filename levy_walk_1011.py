@@ -1,7 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
-length = 500000
+inp = sys.argv  # Input arguments, entered over the terminal
+print(inp)
+
+ss = int(inp[1])
+#num_save = int(inp[2])
+a = float(inp[2])
+number = int(inp[3])
+
+if(a > 1):
+    time_end_exp = 7
+    num_save = 2
+else:
+    time_end_exp = 6
+    num_save = 20
+
+
+#length = 500000
 cut = 10
 velocity = 1.0
 
@@ -108,7 +125,7 @@ def generate_lines(a, b): #Turns a float array into a string array
     return L
 
 def save(num_traj, a, SSD):
-    filename = 'LevyWalkNS_data/te'+str(time_end_exp)+'_a'+str(a)+'.txt'
+    filename = 'LevyWalkNS_data/te'+str(time_end_exp)+'_a'+str(a)+'_'+str(number)+'.txt'
     j_new = 0
     try:
         SSD_old = np.loadtxt(filename, skiprows=2)[:,1]
@@ -139,7 +156,7 @@ def calc_ensemble(ss, a, time_end):
     min_dt = 10
     SSD = np.zeros(num_xaxis-1)
     for j in range(ss):
-        if(10*j/ss % 1 == 0):
+        if(10000*j/ss % 1 == 0):
             print(j/ss)
         xs, deltat = generate_traj(time_end, a)
         #plt.plot(t, x, '.-', label='values')
@@ -150,12 +167,12 @@ def calc_ensemble(ss, a, time_end):
             min_dt = deltat
 
         SSD += xs**2
-        if(j % 100 == 0):
+        if(j != 0 and j % num_save == 0):
             print('save')
-            save(100, a, SSD)
+            save(num_save, a, SSD)
             SSD = np.zeros(num_xaxis-1)
     
-    save(100, a, SSD)
+    save(num_save, a, SSD)
         
     MSD = SSD/ss
     plt.plot(log_time_scale, MSD, label='a='+str(a))
@@ -175,7 +192,7 @@ def calc_ensemble(ss, a, time_end):
 #calc_ensemble(100, 0.6, log_time_scale[-1]) #10**time_end_exp)
 #calc_ensemble(100, 0.9, log_time_scale[-1]) #10**time_end_exp)
 
-calc_ensemble(10000, 1.8, log_time_scale[-1]) #10**time_end_exp)
+calc_ensemble(ss, a, log_time_scale[-1]) #10**time_end_exp)
 
 
 plt.xscale('log')
