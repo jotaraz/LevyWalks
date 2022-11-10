@@ -101,15 +101,40 @@ def generate_traj(time_end, a):
 
     return x_short, min_dt
 
-def save(num_traj, a, x_data):
-    filename = 'LevyWalkNS_data/te'+str(time_end_exp)+'_a'+str(a)+'.txt'
-    
-    
+def generate_lines(a, b): #Turns a float array into a string array
+    L = []
+    for i in range(len(a)):
+        L.append(str(a[i]) + ' ' + str(b[i]) + ' \n')
+    return L
 
+def save(j, a, SSD):
+    filename = 'LevyWalkNS_data/te'+str(time_end_exp)+'_a'+str(a)+'.txt'
+    j_new = 0
+    try:
+        SSD_old = np.loadtxt(filename, skiprows=2)
+        lines = []
+        with open(filename) as f:
+            lines = f.readlines()
+        j_old = float(lines[1][2:])
+        SSD_new = SSD_old + SSD
+        j_new = j_old + j
+
+        file1 = open(filename, 'w')
+        L = generate_lines(log_time_scale, SSD_new)
+    except:
+        file1 = open(filename, 'w')
+        L = generate_lines(log_time_scale, SSD)
+        j_new = j
+    
+    file1.write('a='+str(a))
+    file1.write('j='+str(j_new))
+    file1.writelines(L)
+    file1.close()
+    
 def calc_ensemble(ss, a, time_end):
     
     min_dt = 10
-    MSD = np.zeros(num_xaxis-1)
+    SSD = np.zeros(num_xaxis-1)
     for j in range(ss):
         if(100*j/ss % 1 == 0):
             print(j/ss)
@@ -121,9 +146,12 @@ def calc_ensemble(ss, a, time_end):
         if(deltat < min_dt):
             min_dt = deltat
 
-        MSD += xs**2
-
-    MSD /= ss
+        SSD += xs**2
+        
+    save(ss, a, SSD)
+        
+        
+    MSD = SSD/ss
     plt.plot(log_time_scale, MSD, label='a='+str(a))
     if(a < 1):            
         plt.plot(log_time_scale, log_time_scale**2, '-', label='t^2')
