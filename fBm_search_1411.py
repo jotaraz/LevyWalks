@@ -19,21 +19,21 @@ length = 100000
 Re = 1.0
 num_targets = int(boxsize**2 / Lfree**2)
 
-
+"""
 grid_scale = 10*Lfree
 num_cells = int(boxsize / grid_scale)
 boxsize = num_cells * grid_scale
 num_per_cell = 10*int(num_targets/num_cells**2)
 grid_indices = np.zeros((int(boxsize / grid_scale) ** 2, num_per_cell))
 grid_indices_len = np.zeros(int(boxsize / grid_scale) ** 2)
-
+"""
 
 def generate_lines(a): #Turns a float array into a string array
     L = []
     for i in range(len(a)):
         L.append(str(a[i]) + ' \n')
     return L
-
+"""
 @jit(nopython=True)
 def grid(tx, ty): #this function puts all the indices of the obstacles in the (i,j)-th cell in the i*num_cells+j entry of grid_indices
     grid_indices = np.zeros((num_cells ** 2, num_per_cell), dtype=np.int32)
@@ -45,9 +45,9 @@ def grid(tx, ty): #this function puts all the indices of the obstacles in the (i
         grid_indices[index][int(grid_indices_len[index])] = k
         grid_indices_len[index] += 1
     return grid_indices, grid_indices_len
-
+"""
 def save(times, H, LD):
-    filename = 'fBm_data/FAT_H'+str(round(H,3))+'_LD'+str(LD)+'_B'+str(boxsize)+'_T'+str(length)+'_'+str(number)+'_v5.txt'
+    filename = 'fBm_data/FAT_H'+str(round(H,3))+'_LD'+str(LD)+'_B'+str(boxsize)+'_T'+str(length)+'_'+str(number)+'_v6.txt'
     j_new = 0
     try:
         data = np.loadtxt(filename, skiprows=1)
@@ -60,7 +60,7 @@ def save(times, H, LD):
         file1.write('start \n')
         file1.writelines(generate_lines(times))
         file1.close()
-
+"""
 @jit(nopython=True)
 def calculate_neighbors(i_x, i_y, cache): #, cache_check):
     #this function calculates this square for (i_x, i_y) if that hasn't been done yet and returns the whole cache
@@ -76,14 +76,14 @@ def calculate_neighbors(i_x, i_y, cache): #, cache_check):
                                     ((i_x + 1) % num_cells) * num_cells + i_y,
                                     ((i_x + 1) % num_cells) * num_cells + (i_y + 1) % num_cells])
     return cache   
-
+"""
 
 @jit(nopython=True)
 def calc_trajectory(length, H, LD, tx, ty, x_sample, y_sample):
     x0, y0 = initial_pos(tx, ty)
     
-    (grid_indices, grid_indices_len) = grid(tx, ty)
-    cache = np.zeros((num_cells, num_cells, 9))
+    #(grid_indices, grid_indices_len) = grid(tx, ty)
+    #cache = np.zeros((num_cells, num_cells, 9))
     
     x = [x0]#np.zeros(length)
     y = [y0]#np.zeros(length)
@@ -112,23 +112,14 @@ def calc_trajectory(length, H, LD, tx, ty, x_sample, y_sample):
             y[j] = -y[j]
             print('boundary')
 
-        i_x = int(x[j] / grid_scale)
-        i_y = int(y[j] / grid_scale)
-        cache = calculate_neighbors(i_x, i_y, cache)
-        adjacent_indices = cache[i_x][i_y]
-
-        found = 0
-        i = 0
-        while(found == 0 and i < (len(adjacent_indices))): #every adjacent cell (and the cell itself) is considered
-            index = int(adjacent_indices[i])
-            for cell_index in range(grid_indices_len[index]): #and all their obstacles
-                c_x = tx[grid_indices[index][cell_index]] #position of the obstacle
-                c_y = ty[grid_indices[index][cell_index]]
-                if((c_x - x[j])**2 + (c_y - y[j])**2 < Re**2): #distance^2 between particle and obstacle
-                    t_FA = j
-                    found = 1
-                    break
-            i += 1
+        for i in range(num_targets):
+            c_x = tx[i] #position of the obstacle
+            c_y = ty[i]
+            if((c_x - x[j])**2 + (c_y - y[j])**2 < Re**2): #distance^2 between particle and obstacle
+                t_FA = j
+                found = 1
+                break
+            
         j += 1
         
     x = np.array(x)
@@ -176,8 +167,7 @@ def draw_targets(tx, ty, xmax, xmin, ymax, ymin):
 
         
 
-def calc_first_arrival(length, H, LD):
-    tx, ty = create_targets()
+def calc_first_arrival(length, H, LD, tx, ty):
     f = FBM(n=length, hurst=H, length=1, method='daviesharte')
     x_sample = LD * 2**0.5 * f.fgn() * length**H
     y_sample = LD * 2**0.5 * f.fgn() * length**H
@@ -199,7 +189,6 @@ def calc_first_arrival(length, H, LD):
                 not_found = 0
                 break
         i += 1
-
     print('t_FA = ', t_FA)
     """
 
@@ -209,8 +198,7 @@ def calc_first_arrival(length, H, LD):
     return dx_max, t_FA
 
 
-#H = [0.1, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9]
-H = [0.93, 0.97]
+H = [0.1, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.9]
 t_FA = np.zeros(len(H))
 #ss = 200
 #LD = 1
@@ -220,9 +208,10 @@ dx_max = 0
 while(True):
     for i in range(len(H)):
         times = []
+        tx, ty = create_targets()
         for j in range(ss):
             print(j, '/', ss)
-            dx, t_temp = calc_first_arrival(length, H[i], LD)
+            dx, t_temp = calc_first_arrival(length, H[i], LD, tx, ty)
             dx_max = max(dx, dx_max)
             t_FA[i] += t_temp
             times.append(t_temp)
@@ -238,11 +227,9 @@ while(True):
 
 """
 x = np.linspace(0.1, 200, 100)
-
 plt.plot(x, 2*x**0.6)
 plt.plot(x, 2*x**1.0)
 plt.plot(x, 2*x**1.4)
-
 MSD_loop(ss, 400, 0.3)
 MSD_loop(ss, 200, 0.5)
 MSD_loop(ss, 100, 0.7)
